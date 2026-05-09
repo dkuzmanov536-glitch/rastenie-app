@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Приложение за поливане на градината с напомняния и проследяване">
+  <meta name="theme-color" content="#1a3a25">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Градина">
+  <title>Моята градина 🌱</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E🌱%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'DM Sans', sans-serif; 
+      background: #0d1f15; 
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      overscroll-behavior: none;
+    }
+    .app { 
+      width: 100%; 
+      max-width: 390px; 
+      min-height: 100vh;
+      background: #f5f0e8; 
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 391px) {
+      .app {
+        border-radius: 24px;
+        box-shadow: 0 20px 80px rgba(0,0,0,0.4);
+      }
+    }
+    .header {
+      background: linear-gradient(170deg, #1a3a25 0%, #2d5a3d 100%);
+      padding: 48px 20px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    .header-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .greeting { 
+      color: #6ee7a0; 
+      font-size: 12px; 
+      letter-spacing: 2px; 
+      text-transform: uppercase; 
+      margin-bottom: 4px;
+    }
+    .title { 
+      color: #f5f0e8; 
+      font-family: 'Fraunces', serif; 
+      font-size: 26px; 
+      font-weight: 400; 
+      line-height: 1.1;
+    }
+    .weather-widget {
+      background: rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .weather-icon { font-size: 22px; }
+    .weather-temp { color: #fff; font-size: 15px; font-weight: 500; margin: 2px 0; }
+    .weather-info { color: #6ee7a0; font-size: 10px; }
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .stat-box {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .stat-label { 
+      color: #6ee7a0; 
+      font-size: 10px; 
+      text-transform: uppercase; 
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+    .stat-value { 
+      color: #fff; 
+      font-family: 'Fraunces', serif; 
+      font-size: 22px;
+    }
+    .tabs {
+      background: #1a3a25;
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tab {
+      flex: 1;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 12px 4px;
+      font-size: 12px;
+      color: #4a7a5a;
+      font-weight: 400;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      color: #6ee7a0;
+      font-weight: 500;
+      border-bottom-color: #6ee7a0;
+    }
+    .tab:active { transform: scale(0.92); }
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: 80px;
+    }
+    .content::-webkit-scrollbar { display: none; }
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 15px;
+      color: #2d3a2e;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+    .plant-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: fadeIn 0.4s ease both;
+    }
+    .plant-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .plant-info { flex: 1; min-width: 0; }
+    .plant-name { 
+      font-family: 'Fraunces', serif; 
+      font-size: 15px; 
+      color: #1a2e1e; 
+      font-weight: 400;
+    }
+    .plant-details { 
+      font-size: 12px; 
+      color: #7a9a7e; 
+      margin-top: 1px;
+    }
+    .plant-status {
+      display: inline-block;
+      margin-top: 5px;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .water-btn {
+      background: #1a3a25;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+      transition: transform 0.1s;
+    }
+    .water-btn:active { transform: scale(0.93); }
+    .water-btn-icon { font-size: 18px; }
+    .water-btn-text { font-size: 10px; color: #6ee7a0; }
+    .forecast-grid {
+      display: flex;
+      gap: 8px;
+    }
+    .forecast-day {
+      flex: 1;
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 4px;
+      text-align: center;
+      border: 1px solid #e8e0d5;
+    }
+    .forecast-day.rain {
+      background: #e8f4fd;
+      border-color: #93c5fd;
+    }
+    .forecast-label { font-size: 10px; color: #7a9a7e; font-weight: 500; }
+    .forecast-icon { font-size: 18px; margin: 5px 0 2px; }
+    .forecast-temp { font-size: 12px; color: #2d3a2e; font-weight: 500; }
+    .forecast-rain { font-size: 10px; color: #3b82f6; }
+    .rain-alert {
+      margin-top: 10px;
+      background: #eff6ff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: 1px solid #bfdbfe;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .rain-alert-icon { font-size: 18px; }
+    .rain-alert-text { font-size: 12px; color: #1d4ed8; }
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      background: #fff;
+      border-radius: 16px;
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 8px; }
+    .empty-title { 
+      font-family: 'Fraunces', serif; 
+      font-size: 16px; 
+      color: #2d5a3d;
+    }
+    .add-btn {
+      width: 100%;
+      background: #2d5a3d;
+      border: 2px dashed rgba(110, 231, 160, 0.25);
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #6ee7a0;
+      margin-top: 4px;
+    }
+    .notification-toggle {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(110, 231, 160, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .notification-toggle-icon { font-size: 20px; }
+    .notification-toggle-text {
+      flex: 1;
+      font-size: 13px;
+      color: #2d3a2e;
+    }
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: #ccc;
+      border-radius: 12px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .toggle-switch.on {
+      background: #2d5a3d;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      background: #fff;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+    .toggle-switch.on::after {
+      transform: translateX(20px);
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: flex-end;
+      z-index: 100;
+      animation: fadeIn 0.2s;
+    }
+    .modal {
+      background: #f5f0e8;
+      border-radius: 24px 24px 0 0;
+      padding: 20px 20px 40px;
+      width: 100%;
+      max-width: 390px;
+      animation: slideUp 0.35s cubic-bezier(.32,.72,0,1);
+    }
+    .modal-title {
+      font-family: 'Fraunces', serif;
+      font-size: 18px;
+      color: #1a2e1e;
+      margin-bottom: 16px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-label {
+      font-size: 12px;
+      color: #52796f;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .form-input {
+      width: 100%;
+      background: #fff;
+      border: 1px solid #d4e8da;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: #1a2e1e;
+      outline: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+    .submit-btn {
+      width: 100%;
+      background: #1a3a25;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      font-size: 15px;
+      color: #6ee7a0;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .install-prompt {
+      background: linear-gradient(135deg, #1a3a25, #2d5a3d);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .install-prompt-icon { font-size: 32px; }
+    .install-prompt-text { flex: 1; }
+    .install-prompt-title {
+      font-family: 'Fraunces', serif;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .install-prompt-desc {
+      font-size: 12px;
+      color: #6ee7a0;
+    }
+    .install-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 10px;
+      padding: 8px 16px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .hidden { display: none !important; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    @keyframes droplet {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(2.5); opacity: 0.6; }
+      100% { transform: scale(4); opacity: 0; }
+    }
+    .water-ripple {
+      animation: droplet 0.9s ease-out;
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: rgba(59, 130, 246, 0.12);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        <div>
+          <div class="greeting">Добро утро</div>
+          <div class="title">Моята<br/>градина</div>
+        </div>
+        <div class="weather-widget">
+          <div class="weather-icon">☀️</div>
+          <div class="weather-temp">22°C</div>
+          <div class="weather-info">Дъжд Пет</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">За поливане днес</div>
+          <div class="stat-value" id="todayCount">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Общо вода</div>
+          <div class="stat-value" id="todayWater">0.0 л</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(0)">Начало</button>
+      <button class="tab" onclick="switchTab(1)">Растения</button>
+      <button class="tab" onclick="switchTab(2)">Разписание</button>
+      <button class="tab" onclick="switchTab(3)">История</button>
+    </div>
+
+    <!-- Content -->
+    <div class="content" id="content"></div>
+  </div>
+
+  <!-- Add Plant Modal -->
+  <div id="modal" class="modal-overlay hidden" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title">Ново растение</div>
+      <div class="form-group">
+        <label class="form-label">Emoji</label>
+        <input type="text" class="form-input" id="newEmoji" placeholder="🌱" maxlength="2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Наименование</label>
+        <input type="text" class="form-input" id="newName" placeholder="напр. Домати">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Зона / Местоположение</label>
+        <input type="text" class="form-input" id="newZone" placeholder="напр. Зона А">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label">Поливане (дни)</label>
+          <input type="number" class="form-input" id="newInterval" min="1" max="14" value="2">
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label class="form-label">Вода (литри)</label>
+          <input type="number" class="form-input" id="newAmount" min="0.1" max="20" step="0.5" value="1">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="addPlant()">Добави растение</button>
+    </div>
+  </div>
+
+  <script>
+    let currentTab = 0;
+    let plants = JSON.parse(localStorage.getItem('gardenPlants')) || [
+      { id: 1, name: "Домати", emoji: "🍅", zone: "Зона А", intervalDays: 2, lastWatered: Date.now() - 2.5 * 86400000, amountL: 2, durationMin: 15, notes: "Полива се сутрин" },
+      { id: 2, name: "Моркови", emoji: "🥕", zone: "Зона Б", intervalDays: 3, lastWatered: Date.now() - 2 * 86400000, amountL: 1.5, durationMin: 10, notes: "" },
+      { id: 3, name: "Босилек", emoji: "🌿", zone: "Саксия", intervalDays: 2, lastWatered: Date.now() - 0.3 * 86400000, amountL: 0.5, durationMin: 5, notes: "Не преливай" },
+      { id: 4, name: "Чушки", emoji: "🫑", zone: "Зона А", intervalDays: 3, lastWatered: Date.now() - 1 * 86400000, amountL: 1.5, durationMin: 10, notes: "" },
+      { id: 5, name: "Краставици", emoji: "🥒", zone: "Зона Б", intervalDays: 2, lastWatered: Date.now() - 0.8 * 86400000, amountL: 2, durationMin: 12, notes: "" },
+    ];
+    let history = JSON.parse(localStorage.getItem('gardenHistory')) || [];
+    let notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+    let deferredPrompt = null;
+    let swRegistration = null;
+    
+    const forecast = [
+      { day: "Сря", icon: "☀️", temp: 22, rain: 0 },
+      { day: "Чет", icon: "⛅", temp: 20, rain: 0 },
+      { day: "Пет", icon: "🌧️", temp: 17, rain: 12 },
+      { day: "Съб", icon: "🌦️", temp: 18, rain: 5 },
+      { day: "Нед", icon: "☀️", temp: 23, rain: 0 },
+    ];
+
+    const statusColors = {
+      overdue: { dot: "#ef4444", bg: "#fef2f2", text: "#b91c1c", label: "Полей сега!", border: "#ef444422" },
+      today: { dot: "#f97316", bg: "#fff7ed", text: "#c2410c", label: "Днес", border: "#f9731622" },
+      soon: { dot: "#eab308", bg: "#fefce8", text: "#a16207", label: "Скоро", border: "#eab30822" },
+      ok: { dot: "#22c55e", bg: "#f0fdf4", text: "#15803d", label: "Добре", border: "#22c55e22" },
+    };
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registered');
+          swRegistration = registration;
+        })
+        .catch(err => console.log('Service Worker registration failed:', err));
+    }
+
+    // Handle install prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    // Request notification permission
+    async function requestNotificationPermission() {
+      if ('Notification' in window && swRegistration) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          notificationsEnabled = true;
+          localStorage.setItem('notificationsEnabled', 'true');
+          scheduleAllNotifications();
+          render();
+        }
+      }
+    }
+
+    function toggleNotifications() {
+      if (!notificationsEnabled) {
+        requestNotificationPermission();
+      } else {
+        notificationsEnabled = false;
+        localStorage.setItem('notificationsEnabled', 'false');
+        render();
+      }
+    }
+
+    function scheduleAllNotifications() {
+      if (!notificationsEnabled || !swRegistration) return;
+      
+      plants.forEach(plant => {
+        const nextWaterTime = plant.lastWatered + plant.intervalDays * 86400000;
+        const notifyTime = nextWaterTime - 3600000; // 1 hour before
+        
+        if (notifyTime > Date.now()) {
+          swRegistration.active.postMessage({
+            type: 'SCHEDULE_NOTIFICATION',
+            title: `Време за поливане! 💧`,
+            body: `${plant.emoji} ${plant.name} трябва да бъде поляват${plant.name.endsWith('а') || plant.name.endsWith('и') ? 'и' : ''}`,
+            timestamp: notifyTime
+          });
+        }
+      });
+    }
+
+    async function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Install prompt outcome: ${outcome}`);
+        deferredPrompt = null;
+        render();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('gardenPlants', JSON.stringify(plants));
+      localStorage.setItem('gardenHistory', JSON.stringify(history));
+    }
+
+    function daysUntilNext(plant) {
+      const nextDate = plant.lastWatered + plant.intervalDays * 86400000;
+      return (nextDate - Date.now()) / 86400000;
+    }
+
+    function statusOf(plant) {
+      const d = daysUntilNext(plant);
+      if (d < 0) return "overdue";
+      if (d < 1) return "today";
+      if (d < 2) return "soon";
+      return "ok";
+    }
+
+    function nextWaterLabel(plant) {
+      const d = daysUntilNext(plant);
+      if (d < 0) return "Сега!";
+      if (d < 0.5) return "Днес";
+      if (d < 1.5) return "Утре";
+      const days = ["Нед", "Пон", "Вт", "Ср", "Чет", "Пет", "Съб"];
+      const next = new Date(plant.lastWatered + plant.intervalDays * 86400000);
+      return days[next.getDay()];
+    }
+
+    function waterPlant(id) {
+      const plant = plants.find(p => p.id === id);
+      if (!plant) return;
+      
+      const iconEl = document.querySelector(`[data-plant-id="${id}"]`);
+      if (iconEl) {
+        const ripple = document.createElement('div');
+        ripple.className = 'water-ripple';
+        iconEl.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 900);
+      }
+      
+      plant.lastWatered = Date.now();
+      history.unshift({
+        id: Date.now(),
+        plant: plant.name,
+        emoji: plant.emoji,
+        time: new Date(),
+        amount: plant.amountL
+      });
+      
+      saveData();
+      scheduleAllNotifications();
+      updateStats();
+      render();
+    }
+
+    function updateStats() {
+      const todayPlants = plants.filter(p => daysUntilNext(p) < 1);
+      const totalWater = todayPlants.reduce((s, p) => s + p.amountL, 0);
+      document.getElementById('todayCount').textContent = todayPlants.length;
+      document.getElementById('todayWater').textContent = totalWater.toFixed(1) + ' л';
+    }
+
+    function switchTab(index) {
+      currentTab = index;
+      document.querySelectorAll('.tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === index);
+      });
+      render();
+    }
+
+    function showModal() {
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function closeModal(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    function addPlant() {
+      const name = document.getElementById('newName').value.trim();
+      if (!name) return;
+      
+      plants.push({
+        id: Date.now(),
+        name,
+        emoji: document.getElementById('newEmoji').value || '🌱',
+        zone: document.getElementById('newZone').value,
+        intervalDays: +document.getElementById('newInterval').value,
+        lastWatered: Date.now() - +document.getElementById('newInterval').value * 86400000,
+        amountL: +document.getElementById('newAmount').value,
+        durationMin: 10,
+        notes: ""
+      });
+      
+      document.getElementById('newName').value = '';
+      document.getElementById('newEmoji').value = '';
+      document.getElementById('newZone').value = '';
+      document.getElementById('newInterval').value = '2';
+      document.getElementById('newAmount').value = '1';
+      
+      saveData();
+      scheduleAllNotifications();
+      closeModal();
+      updateStats();
+      render();
+    }
+
+    function render() {
+      const content = document.getElementById('content');
+      
+      if (currentTab === 0) {
+        // HOME TAB
+        const sorted = [...plants].sort((a, b) => daysUntilNext(a) - daysUntilNext(b));
+        const needWater = sorted.filter(p => statusOf(p) !== "ok");
+        
+        let html = '';
+        
+        // Install prompt
+        if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+          html += `
+            <div class="install-prompt">
+              <div class="install-prompt-icon">📱</div>
+              <div class="install-prompt-text">
+                <div class="install-prompt-title">Инсталирай приложението</div>
+                <div class="install-prompt-desc">Добави към началния екран за бърз достъп</div>
+              </div>
+              <button class="install-btn" onclick="installApp()">Инсталирай</button>
+            </div>
+          `;
+        }
+        
+        // Notifications toggle
+        html += `
+          <div class="notification-toggle" onclick="toggleNotifications()">
+            <div class="notification-toggle-icon">${notificationsEnabled ? '🔔' : '🔕'}</div>
+            <div class="notification-toggle-text">
+              ${notificationsEnabled ? 'Известията са включени' : 'Включи известия за поливане'}
+            </div>
+            <div class="toggle-switch ${notificationsEnabled ? 'on' : ''}"></div>
+          </div>
+        `;
+        
+        html += '<div class="section-title">Нужда от вода</div>';
+        
+        if (needWater.length === 0) {
+          html += '<div class="empty-state"><div class="empty-icon">🌿</div><div class="empty-title">Всички растения са поляти!</div></div>';
+        } else {
+          needWater.forEach(p => {
+            const s = statusOf(p);
+            const sc = statusColors[s];
+            html += `
+              <div class="plant-card" style="border: 1px solid ${sc.border}; animation-delay: ${needWater.indexOf(p) * 0.07}s;">
+                <div class="plant-icon-wrapper" style="background: ${sc.bg};" data-plant-id="${p.id}">
+                  ${p.emoji}
+                </div>
+                <div class="plant-info">
+                  <div class="plant-name">${p.name}</div>
+                  <div class="plant-details">${p.zone} · ${p.amountL}л · ${p.durationMin} мин</div>
+                  <div class="plant-status" style="background: ${sc.bg}; color: ${sc.text};">${sc.label}</div>
+                </div>
+                <button class="water-btn" onclick="waterPlant(${p.id})">
+                  <span class="water-btn-icon">💧</span>
+                  <span class="water-btn-text">Полей</span>
+                </button>
+              </div>
+            `;
+          });
+        }
+        
+        html += '<div class="section-title" style="margin-top: 20px;">Прогноза за дъжд</div>';
+        html += '<div class="forecast-grid">';
+        forecast.forEach(f => {
+          html += `
+            <div class="forecast-day ${f.rain > 0 ? 'rain' : ''}">
+              <div class="forecast-label">${f.day}</div>
+              <div class="forecast-icon">${f.icon}</div>
+              <div class="forecast-temp">${f.temp}°</div>
+              ${f.rain > 0 ? `<div class="forecast-rain">${f.rain}мм</div>` : ''}
+            </div>
+          `;
+        });
+        html += '</div>';
+        
+        if (forecast.some(f => f.rain > 0)) {
+          html += `
+            <div class="rain-alert">
+              <span class="rain-alert-icon">🌧️</span>
+              <span class="rain-alert-text">Дъжд в петък — поливането ще се пропусне автоматично</span>
+            </div>
+          `;
+        }
+        
+        content.innerHTML = html;
+      } else if (currentTab === 1) {
+        // PLANTS TAB
+        let html = '';
+        plants.forEach((p, i) => {
+          const s = statusOf(p);
+          const sc = statusColors[s];
+          html += `
+            <div class="plant-card" style="animation-delay: ${i * 0.06}s; border: 1px solid #e8e0d5;">
+              <div class="plant-icon-wrapper" style="background: ${sc.bg};" data-plant-id="${p.id}">${p.emoji}</div>
+              <div class="plant-info" style="flex: 1;">
+                <div class="plant-name">${p.name}</div>
+                <div class="plant-details">${p.zone} · на ${p.intervalDays} дни</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${sc.dot}; margin-left: auto; margin-bottom: 4px;"></div>
+                <div style="font-size: 11px; color: ${sc.text};">${nextWaterLabel(p)}</div>
+              </div>
+            </div>
+          `;
+        });
+        html += '<button class="add-btn" onclick="showModal()">+ Добави растение</button>';
+        content.innerHTML = html;
+      } else if (currentTab === 2) {
+        // SCHEDULE TAB
+        const todaySchedule = plants.filter(p => daysUntilNext(p) < 1);
+        let html = '<div class="section-title">Днес</div>';
+        
+        if (todaySchedule.length === 0) {
+          html += '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Нищо за поливане днес</div></div>';
+        } else {
+          todaySchedule.forEach((p, i) => {
+            const sc = statusColors[statusOf(p)];
+            html += `
+              <div class="plant-card" style="border: 1px solid #e8e0d5;">
+                <div class="plant-icon-wrapper" style="background: ${sc.bg};" data-plant-id="${p.id}">${p.emoji}</div>
+                <div class="plant-info">
+                  <div class="plant-name">${p.name}</div>
+                  <div class="plant-details">${p.zone} · ${p.amountL}л · ${p.durationMin}мин</div>
+                </div>
+                <button class="water-btn" onclick="waterPlant(${p.id})">
+                  <span class="water-btn-icon">💧</span>
+                </button>
+              </div>
+            `;
+          });
+        }
+        content.innerHTML = html;
+      } else if (currentTab === 3) {
+        // HISTORY TAB
+        let html = '';
+        if (history.length === 0) {
+          html = `
+            <div class="empty-state" style="padding: 48px 16px;">
+              <div class="empty-icon">📋</div>
+              <div class="empty-title">Историята е празна</div>
+              <div style="font-size: 12px; color: #9aaa9e; margin-top: 4px;">Полей растение, за да видиш запис тук</div>
+            </div>
+          `;
+        } else {
+          html = '<div class="section-title">Последни поливания</div>';
+          history.forEach(h => {
+            const time = new Date(h.time);
+            html += `
+              <div class="plant-card" style="border: 1px solid #e8e0d5;">
+                <div class="plant-icon-wrapper" style="background: #e8f5ec;">${h.emoji}</div>
+                <div class="plant-info">
+                  <div class="plant-name">${h.plant}</div>
+                  <div class="plant-details">${time.toLocaleTimeString('bg-BG', {hour: '2-digit', minute: '2-digit'})} · ${h.amount}л</div>
+                </div>
+                <div style="background: #f0fdf4; border-radius: 8px; padding: 3px 8px;">
+                  <span style="font-size: 11px; color: #15803d;">✓ Полято</span>
+                </div>
+              </div>
+            `;
+          });
+          
+          const totalUsed = history.reduce((s, h) => s + h.amount, 0);
+          html += `
+            <div style="text-align: center; margin-top: 16px;">
+              <div style="font-size: 12px; color: #7a9a7e;">Общо използвана вода днес:</div>
+              <div style="font-family: 'Fraunces', serif; font-size: 28px; color: #2d5a3d; margin-top: 4px;">
+                ${totalUsed.toFixed(1)} л
+              </div>
+            </div>
+          `;
+        }
+        content.innerHTML = html;
+      }
+    }
+
+    // Initialize
+    updateStats();
+    render();
+    scheduleAllNotifications();
+  </script>
+</body>
+</html>
